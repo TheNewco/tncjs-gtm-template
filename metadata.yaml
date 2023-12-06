@@ -1,0 +1,5 @@
+homepage: "https://www.thenewco.tech/"
+documentation: "https://docs.google.com/document/d/1j7TfFzOITSYKNhpMv0L__qlzr70JlPiv68l8OM_6NMs/edit?usp=sharing"
+versions:
+  - sha: 49112069422b9978ce643ba32bb9601e762a4048
+    changeNotes: Initial Release
