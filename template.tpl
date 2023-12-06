@@ -10,7 +10,7 @@ ___INFO___
 
 {
   "displayName": "TNCiD - The Newco",
-  "categories": ["ADVERTSING, ANALYTICS"],
+  "categories": ["ADVERTSING", "ANALYTICS"],
   "description": "The Newco ID tag with Main snippet (with autostart set to false) and Event tracking snippet\n\n* window.__tnc global object renaming",
   "securityGroups": [],
   "id": "cvt_temp_public_id",
