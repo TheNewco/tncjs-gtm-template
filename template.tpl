@@ -11,7 +11,7 @@ ___INFO___
 {
   "displayName": "TNCiD - The Newco",
   "categories": ["ADVERTSING", "ANALYTICS"],
-  "description": "The Newco ID tag with Main snippet (with autostart set to false) and Event tracking snippet\n\n* window.__tnc global object renaming",
+  "description": "The official TNCid template. Quickly and easily install the tracking script, events, and custom variables",
   "securityGroups": [],
   "id": "cvt_temp_public_id",
   "type": "TAG",
