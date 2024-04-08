@@ -10,15 +10,18 @@ ___INFO___
 
 {
   "displayName": "TNCiD - The Newco",
-  "categories": ["ADVERTSING", "ANALYTICS"],
+  "categories": [
+    "ADVERTSING",
+    "ANALYTICS"
+  ],
   "description": "The official TNCid template. Quickly and easily install the tracking script, events, and custom variables",
   "securityGroups": [],
   "id": "cvt_temp_public_id",
   "type": "TAG",
   "version": 1,
   "brand": {
-    "displayName": "",
-    "id": "brand_dummy",
+    "displayName": "TheNewco",
+    "id": "github.com_TheNewco",
     "thumbnail": "data:image/png;base64,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"
   },
   "containerContexts": [
@@ -356,6 +359,7 @@ const copyFromWindow = require('copyFromWindow');
 const callLater = require('callLater');
 const queryPermission = require('queryPermission');
 const injectScript = require('injectScript');
+const encodeUriComponent = require('encodeUriComponent');
 let dataLayerCallback = ()=>{};
 if (queryPermission('access_globals', 'readwrite', 'dataLayer')) {
   dataLayerCallback = (eventName, tncid) => {
@@ -374,24 +378,22 @@ const customerData = data.CustomerData || [];
 const customVariables = data.CustomVariables || [];
 const DataLayerEventName = data.DataLayerEventName;
 const WindowCustomEventName = data.WindowCustomEventName;
-const url = 'https://js.tncid.app/tnc.min.js?providerId='+providerId+'&global='+TNCObjectName+'&autostart=true';
+const url = 'https://run.tncid.app/tnc.min.js?providerId='+encodeUriComponent(providerId)+'&global='+encodeUriComponent(TNCObjectName)+'&autostart=true';
 
 log('TNCObjectName = ', TNCObjectName);
 
-var SendData = copyFromWindow(TNCObjectName+'.sendData');
-var ObjectExists = typeof SendData=='function';
+var ObjectExists = ()=>typeof copyFromWindow(TNCObjectName+'.sendData')=='function';
 var SuccessFunc = ()=>{
-  while(!SendData) {
-    SendData = copyFromWindow(TNCObjectName+'.sendData');
-  }
-  callInWindow(TNCObjectName+'.ready', onReady);
   setInWindow(TNCObjectName+'Loading', false, override);
-  return data.gtmOnSuccess();
+  callInWindow(TNCObjectName+'Func', TNCObjectName, 'ready', onReady);
+  data.gtmOnSuccess();
 };
 
 // reflect changes to window object
 setInWindow(TNCObjectName+'Func', function(g, method, arg1, arg2, arg3){
-  callLater(()=>callInWindow(g+'.'+method, arg1, arg2, arg3));
+  callLater(()=>{
+    callInWindow(g+'.'+method, arg1, arg2, arg3);
+  });
 }, !override);
 
 // Add a callback into in-page __tnc.ready
@@ -405,11 +407,11 @@ var onReady = function(){
   }, {
     st: EventName
   });  
-  callInWindow(TNCObjectName+'.setConfig', config);
+  callInWindow(TNCObjectName+'Func', TNCObjectName, 'setConfig', config);
   // Add custom variables
   (customVariables||[]).forEach(cv=>{
     log('CustomVariable received', cv);
-    callInWindow(TNCObjectName+'.addCustomVariable', cv);
+    callInWindow(TNCObjectName+'Func', TNCObjectName, 'addCustomVariable', cv);
   });
   
   // Push dataLayer event
@@ -420,7 +422,7 @@ var onReady = function(){
       dataLayerCallback(DataLayerEventName, res.tncid);
     };
 
-    callInWindow(TNCObjectName+'.on', 'data-sent', listener, true);
+    callInWindow(TNCObjectName+'Func', TNCObjectName, 'on', 'data-sent', listener, true);
     log('data-sent listener set');
   }
   
@@ -432,31 +434,37 @@ var onReady = function(){
       callInWindow(TNCObjectName+'Func', TNCObjectName, 'CustomEvent', WindowCustomEventName, { tncid: res.tncid });
     };
 
-    callInWindow(TNCObjectName+'.on', 'data-sent', listenerCE, true);
+    callInWindow(TNCObjectName+'Func', TNCObjectName, 'on', 'data-sent', listenerCE, true);
     log('data-sent listener set');
   }
 };
 
+function Init(err) {
+  if (err) {
+    log(err);
+    return data.gtmOnFailure(err);
+  }
+  if (ObjectExists()) {
+    return SuccessFunc();
+  }
 
-var IsLoading = copyFromWindow(TNCObjectName+'Loading');
-if (!ObjectExists && !IsLoading) {
-  setInWindow(TNCObjectName+'Loading', true, override);
+  var IsLoading = copyFromWindow(TNCObjectName+'Loading');
+  if (IsLoading) {
+    while(IsLoading) {
+      IsLoading = copyFromWindow(TNCObjectName+'Loading');
+    }
+    return Init();
+  }
+
   if (queryPermission('inject_script', url)) {
-    injectScript(url, SuccessFunc, data.gtmOnFailure, 'TheNewcoID');
+    setInWindow(TNCObjectName+'Loading', true, override);
+    injectScript(url, Init, data.gtmOnFailure, 'TheNewcoID');
   } else {
-    data.gtmOnFailure();
+    setInWindow(TNCObjectName+'Loading', false, override);
+    Init('failed to load TNCiD tag');
   }
-} else {
-  while(!ObjectExists && IsLoading) {
-    IsLoading = copyFromWindow(TNCObjectName+'Loading');
-  }
-  callInWindow(TNCObjectName+'.ready', onReady);
-  
-  // Triggering of the async event
-  callInWindow(TNCObjectName+'Func', TNCObjectName, 'sendData', null);
-  // Call data.gtmOnSuccess when the tag is finished.
-  data.gtmOnSuccess();
 }
+Init();
 
 
 ___WEB_PERMISSIONS___
