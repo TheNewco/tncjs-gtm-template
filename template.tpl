@@ -1,4 +1,4 @@
-﻿___TERMS_OF_SERVICE___
+___TERMS_OF_SERVICE___
 
 By creating or modifying this file you agree to Google Tag Manager's Community
 Template Gallery Developer Terms of Service available at
@@ -359,6 +359,8 @@ const copyFromWindow = require('copyFromWindow');
 const callLater = require('callLater');
 const queryPermission = require('queryPermission');
 const injectScript = require('injectScript');
+const generateRandom = require('generateRandom');
+const makeString = require('makeString');
 const encodeUriComponent = require('encodeUriComponent');
 let dataLayerCallback = ()=>{};
 if (queryPermission('access_globals', 'readwrite', 'dataLayer')) {
@@ -371,6 +373,8 @@ if (queryPermission('access_globals', 'readwrite', 'dataLayer')) {
 }
 
 const TNCObjectName = '__tnc';
+const TNCFunc = TNCObjectName + 'Func';
+let TNCLoading = false;
 const override = true;
 const providerId = data.ProviderID;
 const EventName = data.EventName=='standard' ? data.StandardEventName : data.CustomEventName.trim();
@@ -383,14 +387,18 @@ const url = 'https://run.tncid.app/tnc.min.js?providerId='+encodeUriComponent(pr
 log('TNCObjectName = ', TNCObjectName);
 
 var ObjectExists = ()=>typeof copyFromWindow(TNCObjectName+'.sendData')=='function';
+var IsMainSnippet = !ObjectExists();
 var SuccessFunc = ()=>{
-  setInWindow(TNCObjectName+'Loading', false, override);
-  callInWindow(TNCObjectName+'Func', TNCObjectName, 'ready', onReady);
+  TNCLoading = false;
+  callInWindow(TNCFunc, TNCObjectName, 'ready', onReady);
+  if (!IsMainSnippet) {
+    callInWindow(TNCFunc, TNCObjectName, 'sendData');
+  }
   data.gtmOnSuccess();
 };
 
 // reflect changes to window object
-setInWindow(TNCObjectName+'Func', function(g, method, arg1, arg2, arg3){
+setInWindow(TNCFunc, function(g, method, arg1, arg2, arg3){
   callLater(()=>{
     callInWindow(g+'.'+method, arg1, arg2, arg3);
   });
@@ -407,11 +415,11 @@ var onReady = function(){
   }, {
     st: EventName
   });  
-  callInWindow(TNCObjectName+'Func', TNCObjectName, 'setConfig', config);
+  callInWindow(TNCFunc, TNCObjectName, 'setConfig', config);
   // Add custom variables
   (customVariables||[]).forEach(cv=>{
     log('CustomVariable received', cv);
-    callInWindow(TNCObjectName+'Func', TNCObjectName, 'addCustomVariable', cv);
+    callInWindow(TNCFunc, TNCObjectName, 'addCustomVariable', cv);
   });
   
   // Push dataLayer event
@@ -422,7 +430,7 @@ var onReady = function(){
       dataLayerCallback(DataLayerEventName, res.tncid);
     };
 
-    callInWindow(TNCObjectName+'Func', TNCObjectName, 'on', 'data-sent', listener, true);
+    callInWindow(TNCFunc, TNCObjectName, 'on', 'data-sent', listener, true);
     log('data-sent listener set');
   }
   
@@ -431,10 +439,10 @@ var onReady = function(){
     log('WindowCustomEventName', WindowCustomEventName);
     let listenerCE = (res)=>{
       log('WindowCustomEvent triggering', WindowCustomEventName, res.tncid);
-      callInWindow(TNCObjectName+'Func', TNCObjectName, 'CustomEvent', WindowCustomEventName, { tncid: res.tncid });
+      callInWindow(TNCFunc, TNCObjectName, 'CustomEvent', WindowCustomEventName, { tncid: res.tncid });
     };
 
-    callInWindow(TNCObjectName+'Func', TNCObjectName, 'on', 'data-sent', listenerCE, true);
+    callInWindow(TNCFunc, TNCObjectName, 'on', 'data-sent', listenerCE, true);
     log('data-sent listener set');
   }
 };
@@ -442,25 +450,23 @@ var onReady = function(){
 function Init(err) {
   if (err) {
     log(err);
+    TNCLoading = false;
     return data.gtmOnFailure(err);
   }
   if (ObjectExists()) {
-    return SuccessFunc();
+    TNCLoading = false;
+    callLater(()=>SuccessFunc());
+    return;
   }
-
-  var IsLoading = copyFromWindow(TNCObjectName+'Loading');
-  if (IsLoading) {
-    while(IsLoading) {
-      IsLoading = copyFromWindow(TNCObjectName+'Loading');
-    }
-    return Init();
+  if (TNCLoading) {
+    callLater(()=>Init());
+    return;
   }
-
   if (queryPermission('inject_script', url)) {
-    setInWindow(TNCObjectName+'Loading', true, override);
+    TNCLoading = true;
     injectScript(url, Init, data.gtmOnFailure, 'TheNewcoID');
   } else {
-    setInWindow(TNCObjectName+'Loading', false, override);
+    TNCLoading = false;
     Init('failed to load TNCiD tag');
   }
 }
@@ -955,45 +961,6 @@ ___WEB_PERMISSIONS___
                   {
                     "type": 8,
                     "boolean": true
-                  }
-                ]
-              },
-              {
-                "type": 3,
-                "mapKey": [
-                  {
-                    "type": 1,
-                    "string": "key"
-                  },
-                  {
-                    "type": 1,
-                    "string": "read"
-                  },
-                  {
-                    "type": 1,
-                    "string": "write"
-                  },
-                  {
-                    "type": 1,
-                    "string": "execute"
-                  }
-                ],
-                "mapValue": [
-                  {
-                    "type": 1,
-                    "string": "__tncLoading"
-                  },
-                  {
-                    "type": 8,
-                    "boolean": true
-                  },
-                  {
-                    "type": 8,
-                    "boolean": true
-                  },
-                  {
-                    "type": 8,
-                    "boolean": false
                   }
                 ]
               }
