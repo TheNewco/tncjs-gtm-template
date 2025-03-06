@@ -16,7 +16,7 @@ ___INFO___
   ],
   "description": "The official TNCid template. Quickly and easily install the tracking script, events, and custom variables",
   "securityGroups": [],
-  "id": "cvt_temp_public_id",
+  "id": "cvt_TNSBC",
   "type": "TAG",
   "version": 1,
   "brand": {
@@ -353,6 +353,7 @@ ___SANDBOXED_JS_FOR_WEB_TEMPLATE___
 var log = require('logToConsole');
 log('data =', data);
 
+const JSON = require('JSON');
 const setInWindow = require('setInWindow');
 const callInWindow = require('callInWindow');
 const copyFromWindow = require('copyFromWindow');
@@ -382,7 +383,7 @@ const customerData = data.CustomerData || [];
 const customVariables = data.CustomVariables || [];
 const DataLayerEventName = data.DataLayerEventName;
 const WindowCustomEventName = data.WindowCustomEventName;
-const url = 'https://run.tncid.app/tnc.min.js?providerId='+encodeUriComponent(providerId)+'&global='+encodeUriComponent(TNCObjectName)+'&autostart=true';
+const url = 'https://run.tncid.app/tnc.min.js?providerId='+encodeUriComponent(providerId)+'&global='+encodeUriComponent(TNCObjectName)+'&autostart=true'; // autostart=true because the context in which the script is loaded has conflicts with js sandbox and it's impossible to handle manual __tnc.sendData immediatly after script injection.
 
 log('TNCObjectName = ', TNCObjectName);
 
@@ -390,10 +391,13 @@ var ObjectExists = ()=>typeof copyFromWindow(TNCObjectName+'.sendData')=='functi
 var IsMainSnippet = !ObjectExists();
 var SuccessFunc = ()=>{
   TNCLoading = false;
-  callInWindow(TNCFunc, TNCObjectName, 'ready', onReady);
+  let __tncReady = copyFromWindow(TNCObjectName + '.ready');
+  __tncReady(onReady);
+
   if (!IsMainSnippet) {
     callInWindow(TNCFunc, TNCObjectName, 'sendData');
   }
+    
   data.gtmOnSuccess();
 };
 
@@ -405,7 +409,8 @@ setInWindow(TNCFunc, function(g, method, arg1, arg2, arg3){
 }, !override);
 
 // Add a callback into in-page __tnc.ready
-var onReady = function(){ 
+// __tnc.sendData can't be executed inside this function because of js sandbox and wrong contexts
+function onReady(){ 
   // Set main configs
   let config = customerData.reduce((p,item)=>{
     if (typeof item.value!=='undefined' && item.value!==null) {
@@ -414,11 +419,17 @@ var onReady = function(){
     return p;
   }, {
     st: EventName
-  });  
+  });
+  
+  let __tncOn = copyFromWindow(TNCObjectName + '.on');
+  let __tncCustomEvent = copyFromWindow(TNCObjectName + '.CustomEvent');
+  let CVs;
+
   callInWindow(TNCFunc, TNCObjectName, 'setConfig', config);
+  
   // Add custom variables
   (customVariables||[]).forEach(cv=>{
-    log('CustomVariable received', cv);
+    log('Setting CustomVariable', cv);
     callInWindow(TNCFunc, TNCObjectName, 'addCustomVariable', cv);
   });
   
@@ -430,8 +441,10 @@ var onReady = function(){
       dataLayerCallback(DataLayerEventName, res.tncid);
     };
 
-    callInWindow(TNCFunc, TNCObjectName, 'on', 'data-sent', listener, true);
-    log('data-sent listener set');
+    __tncOn('data-sent', listener, true);
+    log('data-sent listener for dataLayer event has been set');
+  } else {
+    log('DataLayerEventName is missing');
   }
   
   // Window CustomEvent trigger
@@ -439,38 +452,43 @@ var onReady = function(){
     log('WindowCustomEventName', WindowCustomEventName);
     let listenerCE = (res)=>{
       log('WindowCustomEvent triggering', WindowCustomEventName, res.tncid);
-      callInWindow(TNCFunc, TNCObjectName, 'CustomEvent', WindowCustomEventName, { tncid: res.tncid });
+      __tncCustomEvent(WindowCustomEventName, { tncid: res.tncid });
     };
 
-    callInWindow(TNCFunc, TNCObjectName, 'on', 'data-sent', listenerCE, true);
-    log('data-sent listener set');
-  }
-};
-
-function Init(err) {
-  if (err) {
-    log(err);
-    TNCLoading = false;
-    return data.gtmOnFailure(err);
-  }
-  if (ObjectExists()) {
-    TNCLoading = false;
-    callLater(()=>SuccessFunc());
-    return;
-  }
-  if (TNCLoading) {
-    callLater(()=>Init());
-    return;
-  }
-  if (queryPermission('inject_script', url)) {
-    TNCLoading = true;
-    injectScript(url, Init, data.gtmOnFailure, 'TheNewcoID');
-  } else {
-    TNCLoading = false;
-    Init('failed to load TNCiD tag');
+    __tncOn('data-sent', listenerCE, true);
+    log('data-sent listener for CustomEvent has been set');
   }
 }
-Init();
+
+function BeforeScript() {
+  if (ObjectExists()){
+    return AfterScript();
+  }
+  
+  if (TNCLoading) {
+    return callLater(BeforeScript);
+  }
+  
+  if (queryPermission('inject_script', url)) {
+    log('injecting script');
+    TNCLoading = true;
+    return injectScript(url, AfterScript, Failure, 'TheNewcoID');
+  }
+  
+  TNCLoading = false;
+  return Failure('failed to load TNCiD tag');
+}
+function AfterScript() {
+  TNCLoading = false;
+  return callLater(SuccessFunc);
+}
+function Failure(err){
+  if (err) {
+    return data.gtmOnFailure(err);
+  }
+}
+
+BeforeScript();
 
 
 ___WEB_PERMISSIONS___
@@ -792,11 +810,11 @@ ___WEB_PERMISSIONS___
                 "mapValue": [
                   {
                     "type": 1,
-                    "string": "__tnc.setConfig"
+                    "string": "__tnc.on"
                   },
                   {
                     "type": 8,
-                    "boolean": false
+                    "boolean": true
                   },
                   {
                     "type": 8,
@@ -831,15 +849,15 @@ ___WEB_PERMISSIONS___
                 "mapValue": [
                   {
                     "type": 1,
-                    "string": "__tnc.on"
+                    "string": "__tncFunc"
                   },
                   {
                     "type": 8,
-                    "boolean": false
+                    "boolean": true
                   },
                   {
                     "type": 8,
-                    "boolean": false
+                    "boolean": true
                   },
                   {
                     "type": 8,
@@ -878,11 +896,50 @@ ___WEB_PERMISSIONS___
                   },
                   {
                     "type": 8,
-                    "boolean": true
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "key"
+                  },
+                  {
+                    "type": 1,
+                    "string": "read"
+                  },
+                  {
+                    "type": 1,
+                    "string": "write"
+                  },
+                  {
+                    "type": 1,
+                    "string": "execute"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "__tnc.CustomEvent"
                   },
                   {
                     "type": 8,
                     "boolean": true
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
                   }
                 ]
               },
@@ -948,15 +1005,15 @@ ___WEB_PERMISSIONS___
                 "mapValue": [
                   {
                     "type": 1,
-                    "string": "__tncFunc"
+                    "string": "__tnc.setConfig"
                   },
                   {
                     "type": 8,
-                    "boolean": true
+                    "boolean": false
                   },
                   {
                     "type": 8,
-                    "boolean": true
+                    "boolean": false
                   },
                   {
                     "type": 8,
