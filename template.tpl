@@ -11,7 +11,7 @@ ___INFO___
 {
   "displayName": "TNCiD - The Newco",
   "categories": [
-    "ADVERTSING",
+    "ADVERTISING",
     "ANALYTICS"
   ],
   "description": "The official TNCid template. Quickly and easily install the tracking script, events, and custom variables",
@@ -353,16 +353,14 @@ ___SANDBOXED_JS_FOR_WEB_TEMPLATE___
 var log = require('logToConsole');
 log('data =', data);
 
-const JSON = require('JSON');
 const setInWindow = require('setInWindow');
 const callInWindow = require('callInWindow');
 const copyFromWindow = require('copyFromWindow');
 const callLater = require('callLater');
 const queryPermission = require('queryPermission');
 const injectScript = require('injectScript');
-const generateRandom = require('generateRandom');
-const makeString = require('makeString');
 const encodeUriComponent = require('encodeUriComponent');
+
 let dataLayerCallback = ()=>{};
 if (queryPermission('access_globals', 'readwrite', 'dataLayer')) {
   dataLayerCallback = (eventName, tncid) => {
@@ -373,114 +371,113 @@ if (queryPermission('access_globals', 'readwrite', 'dataLayer')) {
   };
 }
 
+const IDName = 'tncid';
 const TNCObjectName = '__tnc';
-const TNCFunc = TNCObjectName + 'Func';
+const ListenersFlag = '__tncGtmListeners';
 let TNCLoading = false;
-const override = true;
 const providerId = data.ProviderID;
 const EventName = data.EventName=='standard' ? data.StandardEventName : data.CustomEventName.trim();
 const customerData = data.CustomerData || [];
 const customVariables = data.CustomVariables || [];
 const DataLayerEventName = data.DataLayerEventName;
 const WindowCustomEventName = data.WindowCustomEventName;
-const url = 'https://run.tncid.app/tnc.min.js?providerId='+encodeUriComponent(providerId)+'&global='+encodeUriComponent(TNCObjectName)+'&autostart=true'; // autostart=true because the context in which the script is loaded has conflicts with js sandbox and it's impossible to handle manual __tnc.sendData immediatly after script injection.
+// autostart=false: this template no longer relies on the single automatic hit.
+// Instead every tag firing pushes its own self-contained hit (event name +
+// custom variables + customer data) into __tnc.sendQueue, and the library
+// sends each one independently. This way nothing is lost when several TNCiD
+// tags fire on the same page load, and no global state is shared between events.
+const url = 'https://run.tncid.app/tnc.min.js?providerId='+encodeUriComponent(providerId)+'&global='+encodeUriComponent(TNCObjectName)+'&autostart=false&id_name='+encodeUriComponent(IDName);
 
 log('TNCObjectName = ', TNCObjectName);
 
 var ObjectExists = ()=>typeof copyFromWindow(TNCObjectName+'.sendData')=='function';
-var IsMainSnippet = !ObjectExists();
-var SuccessFunc = ()=>{
-  TNCLoading = false;
-  let __tncReady = copyFromWindow(TNCObjectName + '.ready');
-  __tncReady(onReady);
 
-  if (!IsMainSnippet) {
-    callInWindow(TNCFunc, TNCObjectName, 'sendData');
+// Build the self-contained snapshot for THIS hit.
+// customerData -> conf (st = event name + user identifiers e/pc/pn/ex/crm...)
+let conf = customerData.reduce((p, item)=>{
+  if (typeof item.value!=='undefined' && item.value!==null) {
+    p[item.name] = item.value;
   }
-    
-  data.gtmOnSuccess();
+  return p;
+}, {
+  st: EventName
+});
+let snapshot = {
+  conf: conf,
+  customVariables: customVariables
 };
 
-// reflect changes to window object
-setInWindow(TNCFunc, function(g, method, arg1, arg2, arg3){
-  callLater(()=>{
-    callInWindow(g+'.'+method, arg1, arg2, arg3);
-  });
-}, !override);
-
-// Add a callback into in-page __tnc.ready
-// __tnc.sendData can't be executed inside this function because of js sandbox and wrong contexts
-function onReady(){ 
-  // Set main configs
-  let config = customerData.reduce((p,item)=>{
-    if (typeof item.value!=='undefined' && item.value!==null) {
-      p[item.name] = item.value;
-    }
-    return p;
-  }, {
-    st: EventName
-  });
-  
+// Register the "data-sent" listeners (Push dataLayer event / window CustomEvent)
+// only once per page for each event name. The listeners persist and fire once per
+// hit, forwarding the resolved tncid. Tracked in a top-level window object because
+// the template runs in a fresh sandbox on every tag firing, and keyed by listener
+// type + event name so that tags with different settings each register their own.
+function registerListeners(){
   let __tncOn = copyFromWindow(TNCObjectName + '.on');
-  let __tncCustomEvent = copyFromWindow(TNCObjectName + '.CustomEvent');
-  let CVs;
+  if (typeof __tncOn!=='function') {
+    return; // library not ready yet; a later firing will register them
+  }
+  let registered = copyFromWindow(ListenersFlag);
+  registered = typeof registered=='object' && registered!==null ? registered : {};
+  let changed = false;
 
-  callInWindow(TNCFunc, TNCObjectName, 'setConfig', config);
-  
-  // Add custom variables
-  (customVariables||[]).forEach(cv=>{
-    log('Setting CustomVariable', cv);
-    callInWindow(TNCFunc, TNCObjectName, 'addCustomVariable', cv);
-  });
-  
-  // Push dataLayer event
-  if (DataLayerEventName) {
-    log('Setting PushDataLayerEvent', DataLayerEventName);
-    let listener = (res)=>{
+  if (DataLayerEventName && !registered['dataLayer:' + DataLayerEventName]) {
+    __tncOn('data-sent', (res)=>{
       log('DataLayer Event triggering', DataLayerEventName, res.tncid);
       dataLayerCallback(DataLayerEventName, res.tncid);
-    };
-
-    __tncOn('data-sent', listener, true);
+    });
+    registered['dataLayer:' + DataLayerEventName] = true;
+    changed = true;
     log('data-sent listener for dataLayer event has been set');
-  } else {
-    log('DataLayerEventName is missing');
   }
-  
-  // Window CustomEvent trigger
-  if (WindowCustomEventName) {
-    log('WindowCustomEventName', WindowCustomEventName);
-    let listenerCE = (res)=>{
+  if (WindowCustomEventName && !registered['window:' + WindowCustomEventName]) {
+    let __tncCustomEvent = copyFromWindow(TNCObjectName + '.CustomEvent');
+    __tncOn('data-sent', (res)=>{
       log('WindowCustomEvent triggering', WindowCustomEventName, res.tncid);
       __tncCustomEvent(WindowCustomEventName, { tncid: res.tncid });
-    };
-
-    __tncOn('data-sent', listenerCE, true);
+    });
+    registered['window:' + WindowCustomEventName] = true;
+    changed = true;
     log('data-sent listener for CustomEvent has been set');
   }
+
+  if (changed) {
+    setInWindow(ListenersFlag, registered, true);
+  }
+}
+
+// Push this hit into the library queue. Before the library finishes loading the
+// queue is a plain array (the hit is buffered and flushed by init()); afterwards
+// push() is overridden to send immediately. Either way the hit is never lost.
+function PushSnapshot(){
+  TNCLoading = false;
+  registerListeners();
+  log('Queueing TNCiD hit for event', EventName);
+  callInWindow(TNCObjectName + '.sendQueue.push', snapshot);
+  data.gtmOnSuccess();
 }
 
 function BeforeScript() {
   if (ObjectExists()){
     return AfterScript();
   }
-  
+
   if (TNCLoading) {
     return callLater(BeforeScript);
   }
-  
+
   if (queryPermission('inject_script', url)) {
     log('injecting script');
     TNCLoading = true;
     return injectScript(url, AfterScript, Failure, 'TheNewcoID');
   }
-  
+
   TNCLoading = false;
   return Failure('failed to load TNCiD tag');
 }
 function AfterScript() {
   TNCLoading = false;
-  return callLater(SuccessFunc);
+  return callLater(PushSnapshot);
 }
 function Failure(err){
   if (err) {
@@ -1018,6 +1015,84 @@ ___WEB_PERMISSIONS___
                   {
                     "type": 8,
                     "boolean": true
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "key"
+                  },
+                  {
+                    "type": 1,
+                    "string": "read"
+                  },
+                  {
+                    "type": 1,
+                    "string": "write"
+                  },
+                  {
+                    "type": 1,
+                    "string": "execute"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "__tnc.sendQueue.push"
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "key"
+                  },
+                  {
+                    "type": 1,
+                    "string": "read"
+                  },
+                  {
+                    "type": 1,
+                    "string": "write"
+                  },
+                  {
+                    "type": 1,
+                    "string": "execute"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "__tncGtmListeners"
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
                   }
                 ]
               }
