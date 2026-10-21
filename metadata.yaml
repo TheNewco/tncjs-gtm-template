@@ -1,6 +1,16 @@
 homepage: "https://www.thenewco.tech/"
-documentation: "https://docs.google.com/document/d/1j7TfFzOITSYKNhpMv0L__qlzr70JlPiv68l8OM_6NMs/edit?usp=sharing"
+documentation: "https://github.com/TheNewco/tncjs-gtm-template/blob/main/docs/TheNewco-TagManager-Template.md"
 versions:
+  - sha: ffc3e9ea1cf696425e06a6cb644645ffab6135d4
+    changeNotes: >-
+      Reliable per-event delivery: each tag firing now sends its own
+      self-contained hit (own event name, customer data and custom variables)
+      instead of relying on a single automatic hit and shared state. Fixes
+      missing custom variables and events dropped when multiple TNCiD tags fire
+      on the same page load. dataLayer / window CustomEvent listeners are now
+      registered per event name, so tags with different settings no longer
+      block each other. Added README and implementation guide. Requires
+      re-accepting the tag permissions.
   - sha: 1a30fc58f2f82108abedf5e3b2a235ba257310cb
     changeNotes: Improved dataLayer push handling
   - sha: 0a98429ea0a365fc1b17852412f698b2879c398d
